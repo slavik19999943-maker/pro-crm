@@ -3,31 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRM Система PRO</title>
+    <title>CRM PRO</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: -apple-system, sans-serif; background: #121212; color: white; padding: 15px; margin: 0; }
-        .card { background: #1e1e1e; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333; }
-        h2 { text-align: center; color: #0088cc; font-size: 18px; margin-top: 0; }
-        .input-group { display: flex; gap: 8px; margin-bottom: 20px; }
+        .card { background: #1e1e1e; padding: 20px; border-radius: 20px; border: 1px solid #333; max-width: 500px; margin: auto; }
+        h2 { text-align: center; color: #0088cc; margin-top: 0; font-size: 20px; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
         input { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #333; background: #2a2a2a; color: white; outline: none; }
-        button { padding: 12px; border: none; border-radius: 10px; cursor: pointer; background: #0088cc; color: white; font-weight: bold; }
+        button { padding: 12px 20px; border: none; border-radius: 10px; cursor: pointer; background: #0088cc; color: white; font-weight: bold; }
         .task-item { background: #2a2a2a; padding: 15px; border-radius: 15px; margin-bottom: 12px; border-left: 5px solid #0088cc; }
         .task-info { font-size: 11px; color: #888; margin-bottom: 8px; display: flex; justify-content: space-between; }
         .task-text { font-size: 16px; display: block; margin-bottom: 12px; }
         .done { opacity: 0.4; border-left-color: #4caf50; }
         .done .task-text { text-decoration: line-through; }
         .btns { display: flex; gap: 8px; }
-        .btn-ok { background: #2ecc71; flex: 1; font-size: 12px; }
-        .btn-del { background: #e74c3c; flex: 1; font-size: 12px; }
+        .btn-ok { background: #2ecc71; flex: 1; }
+        .btn-del { background: #e74c3c; flex: 1; }
     </style>
 </head>
 <body>
     <div class="card">
         <h2 id="userName">Загрузка...</h2>
         <div class="input-group">
-            <input type="text" id="taskInput" placeholder="Что нужно сделать?">
+            <input type="text" id="taskInput" placeholder="Введите задачу...">
             <button onclick="addTask()">ОК</button>
         </div>
         <div id="taskList"></div>
@@ -58,37 +58,33 @@
                         <div class="task-info"><span>👤 ${task.author || 'Админ'}</span> <span>⏰ ${time}</span></div>
                         <span class="task-text">${task.text}</span>
                         <div class="btns">
-                            <button class="btn-ok" onclick="toggleDone(${task.id}, ${task.is_done})">${task.is_done ? 'Вернуть' : 'Готово'}</button>
+                            <button class="btn-ok" onclick="toggleDone(${task.id}, ${task.is_done})">Готово</button>
                             <button class="btn-del" onclick="deleteTask(${task.id})">Удалить</button>
                         </div>`;
                     list.appendChild(item);
                 });
-            } catch (err) { alert("Ошибка загрузки: " + err.message); }
+            } catch (e) { console.error(e); }
         }
 
         async function addTask() {
             const input = document.getElementById('taskInput');
             if (!input.value) return;
             try {
-                const { error } = await supabaseClient.from('tasks').insert([
-                    { text: input.value, author: user, is_done: false }
-                ]);
+                const { error } = await supabaseClient.from('tasks').insert([{ text: input.value, author: user, is_done: false }]);
                 if (error) throw error;
                 input.value = '';
                 loadTasks();
-            } catch (err) { alert("Ошибка сохранения: " + err.message); }
+            } catch (e) { alert("Ошибка сохранения. Проверь столбцы в таблице!"); }
         }
 
-        async function toggleDone(id, currentStatus) {
-            await supabaseClient.from('tasks').update({ is_done: !currentStatus }).eq('id', id);
+        async function toggleDone(id, status) {
+            await supabaseClient.from('tasks').update({ is_done: !status }).eq('id', id);
             loadTasks();
         }
 
         async function deleteTask(id) {
-            if(confirm('Удалить задачу?')) {
-                await supabaseClient.from('tasks').delete().eq('id', id);
-                loadTasks();
-            }
+            await supabaseClient.from('tasks').delete().eq('id', id);
+            loadTasks();
         }
 
         loadTasks();
