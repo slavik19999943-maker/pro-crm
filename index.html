@@ -3,37 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRM с Календарем</title>
+    <title>Task CRM Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: -apple-system, sans-serif; background: #000; color: white; padding: 15px; margin: 0; }
         .container { max-width: 500px; margin: auto; }
-        h2 { text-align: center; color: #0088cc; margin-bottom: 20px; }
         
+        /* Форма ввода */
         .input-area { background: #1a1a1a; padding: 15px; border-radius: 16px; margin-bottom: 20px; border: 1px solid #333; }
-        input, select { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #333; background: #262626; color: white; box-sizing: border-box; }
-        .add-btn { width: 100%; background: #0088cc; border: none; border-radius: 10px; padding: 12px; color: white; font-weight: bold; cursor: pointer; }
+        input, select, textarea { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #333; background: #262626; color: white; box-sizing: border-box; font-size: 14px; }
+        .row { display: flex; gap: 10px; }
+        .add-btn { width: 100%; background: #0088cc; border: none; border-radius: 10px; padding: 14px; color: white; font-weight: bold; cursor: pointer; }
 
-        .date-section { margin-top: 25px; border-bottom: 1px solid #222; padding-bottom: 5px; color: #0088cc; font-size: 14px; font-weight: bold; text-transform: uppercase; }
-        .task-card { background: #1a1a1a; border-radius: 12px; padding: 15px; margin-top: 10px; border: 1px solid #262626; }
-        .task-header { display: flex; justify-content: space-between; font-size: 11px; color: #777; margin-bottom: 8px; }
-        .task-text { font-size: 16px; margin-bottom: 12px; }
+        /* Фильтр для админа */
+        .admin-filter { margin-bottom: 15px; padding: 10px; background: #0088cc22; border-radius: 10px; border: 1px dashed #0088cc; }
+
+        /* Карточки задач */
+        .date-section { margin-top: 25px; color: #0088cc; font-size: 13px; font-weight: bold; border-left: 3px solid #0088cc; padding-left: 8px; }
+        .task-card { background: #1a1a1a; border-radius: 12px; padding: 15px; margin-top: 10px; border-left: 5px solid #444; position: relative; }
+        .prio-high { border-left-color: #e74c3c; } /* Красный для срочных */
+        .prio-mid { border-left-color: #f1c40f; }  /* Желтый */
         
-        .done { opacity: 0.4; text-decoration: line-through; }
+        .task-header { display: flex; justify-content: space-between; font-size: 11px; color: #777; margin-bottom: 8px; }
+        .task-time { color: #0088cc; font-weight: bold; }
+        .task-text { font-size: 16px; margin-bottom: 10px; display: block; }
+        
+        .result-text { font-size: 13px; color: #2ecc71; font-style: italic; background: #000; padding: 5px; border-radius: 5px; margin-bottom: 10px; display: none; }
+        .show { display: block; }
+
+        .done { opacity: 0.5; filter: grayscale(1); }
         .actions { display: flex; gap: 8px; }
-        .btn-check { background: #27ae60; color: white; flex: 2; border: none; padding: 8px; border-radius: 8px; cursor: pointer; }
-        .btn-delete { background: #c0392b; color: white; flex: 1; border: none; padding: 8px; border-radius: 8px; cursor: pointer; }
+        button { border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px; }
+        .btn-check { background: #27ae60; color: white; flex: 2; }
+        .btn-delete { background: #c0392b; color: white; flex: 1; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2 id="userName">Мои Задачи</h2>
+    <h2 id="userName" style="text-align:center;">Задачи</h2>
+
+    <div id="adminPanel" class="admin-filter" style="display:none;">
+        <select id="userFilter" onchange="loadTasks()">
+            <option value="all">Все сотрудники</option>
+        </select>
+    </div>
     
     <div class="input-area">
         <input type="text" id="taskInput" placeholder="Что нужно сделать?">
-        <input type="date" id="dateInput"> <button class="add-btn" onclick="addTask()">ДОБАВИТЬ В ПЛАН</button>
+        <div class="row">
+            <input type="date" id="dateInput">
+            <input type="time" id="timeInput">
+        </div>
+        <select id="prioInput">
+            <option value="low">Приоритет: Обычный</option>
+            <option value="mid">Приоритет: Важный</option>
+            <option value="high">Приоритет: СРОЧНО 🔥</option>
+        </select>
+        <button class="add-btn" onclick="addTask()">СОЗДАТЬ ЗАДАЧУ</button>
     </div>
 
     <div id="taskList"></div>
@@ -41,67 +69,96 @@
 
 <script>
     const tg = window.Telegram.WebApp;
-    const userName = tg.initDataUnsafe?.user?.first_name || "Админ";
-    document.getElementById('userName').innerText = userName;
+    const userRealName = tg.initDataUnsafe?.user?.first_name || "Админ";
+    const isAdmin = true; // Можно настроить проверку по ID
 
     const URL = 'https://roiadameugqibsqndbvr.supabase.co';
     const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvaWFkYW1ldWdxaWJzcW5kYnZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxMzIxMjgsImV4cCI6MjA4NTcwODEyOH0.2L9vgUDFmXXO7__maMpsNPtAcZ47qsPE4IoElkKfUXs';
     const supabaseClient = supabase.createClient(URL, KEY);
 
-    // Устанавливаем сегодняшнюю дату в инпут по умолчанию
     document.getElementById('dateInput').valueAsDate = new Date();
 
     async function loadTasks() {
-        const { data, error } = await supabaseClient.from('tasks').select('*').order('due_date', { ascending: true });
+        let query = supabaseClient.from('tasks').select('*').order('due_date', { ascending: true }).order('task_time', { ascending: true });
+        
+        const filter = document.getElementById('userFilter').value;
+        if (filter !== 'all') query = query.eq('author', filter);
+
+        const { data, error } = await query;
         if (error) return;
 
         const list = document.getElementById('taskList');
+        const filterSelect = document.getElementById('userFilter');
         list.innerHTML = '';
 
         let lastDate = "";
+        const authors = new Set();
 
         data.forEach(task => {
-            // Группировка по датам
+            authors.add(task.author);
             if (task.due_date !== lastDate) {
                 const section = document.createElement('div');
                 section.className = 'date-section';
-                section.innerText = task.due_date || "Без даты";
+                section.innerText = task.due_date === new Date().toISOString().split('T')[0] ? "СЕГОДНЯ" : task.due_date;
                 list.appendChild(section);
                 lastDate = task.due_date;
             }
 
             const div = document.createElement('div');
-            div.className = `task-card ${task.is_done ? 'done' : ''}`;
+            div.className = `task-card ${task.is_done ? 'done' : ''} prio-${task.priority}`;
             div.innerHTML = `
-                <div class="task-header"><span>👤 ${task.author}</span></div>
+                <div class="task-header">
+                    <span>👤 ${task.author}</span>
+                    <span class="task-time">${task.task_time ? '⏰ ' + task.task_time.slice(0,5) : ''}</span>
+                </div>
                 <div class="task-text">${task.text}</div>
+                <div class="result-text ${task.result_comment ? 'show' : ''}">📝 ${task.result_comment}</div>
                 <div class="actions">
-                    <button class="btn-check" onclick="toggleTask(${task.id}, ${task.is_done})">✔</button>
+                    <button class="btn-check" onclick="completeTask(${task.id}, ${task.is_done})">
+                        ${task.is_done ? 'Вернуть' : 'Готово'}
+                    </button>
                     <button class="btn-delete" onclick="deleteTask(${task.id})">🗑</button>
                 </div>
             `;
             list.appendChild(div);
         });
+
+        // Заполняем фильтр админа
+        if(isAdmin) {
+            document.getElementById('adminPanel').style.display = 'block';
+            const currentVal = filterSelect.value;
+            filterSelect.innerHTML = '<option value="all">Все сотрудники</option>';
+            authors.forEach(a => {
+                const opt = document.createElement('option');
+                opt.value = a; opt.innerText = a;
+                filterSelect.appendChild(opt);
+            });
+            filterSelect.value = currentVal;
+        }
     }
 
     async function addTask() {
         const text = document.getElementById('taskInput').value;
         const date = document.getElementById('dateInput').value;
+        const time = document.getElementById('timeInput').value;
+        const prio = document.getElementById('prioInput').value;
         if (!text) return;
 
         await supabaseClient.from('tasks').insert([{ 
-            text: text, 
-            due_date: date, 
-            author: userName, 
-            is_done: false 
+            text: text, due_date: date, task_time: time, 
+            priority: prio, author: userRealName, is_done: false 
         }]);
         
         document.getElementById('taskInput').value = '';
         loadTasks();
     }
 
-    async function toggleTask(id, status) {
-        await supabaseClient.from('tasks').update({ is_done: !status }).eq('id', id);
+    async function completeTask(id, status) {
+        let comment = "";
+        if (!status) {
+            comment = prompt("Результат (необязательно):", "");
+        }
+        await supabaseClient.from('tasks').update({ is_done: !status, result_comment: comment }).eq('id', id);
         loadTasks();
     }
 
