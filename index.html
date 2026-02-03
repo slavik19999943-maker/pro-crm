@@ -3,41 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Моя СРМ</title>
+    <title>PRO CRM</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; background: #f0f0f5; padding: 20px; }
-        .поле-ввода { display: flex; gap: 10px; margin-bottom: 20px; }
-        input { flex: 1; padding: 15px; border-radius: 10px; border: 1px solid #ccc; }
-        .кнопка-ок { background: #0088cc; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; }
-        .задача { background: white; padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .кнопка-удалить { background: #ff3b30; color: white; border: none; padding: 8px 12px; border-radius: 8px; }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--tg-theme-bg-color, #f4f4f9);
+            color: var(--tg-theme-text-color, #222);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: auto;
+            background: var(--tg-theme-secondary-bg-color, #fff);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        h2 { text-align: center; color: var(--tg-theme-button-color, #007bff); }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            outline: none;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: var(--tg-theme-button-color, #007bff);
+            color: var(--tg-theme-button-text-color, #fff);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        ul { list-style: none; padding: 0; }
+        li {
+            background: #eee;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #333;
+        }
+        .delete-btn { background: #ff4d4d; color: white; padding: 5px 10px; font-size: 12px; }
     </style>
 </head>
 <body>
-    <h2>СПИСОК ЗАДАЧ</h2>
-    <div class="поле-ввода">
-        <input type="text" id="ввод" placeholder="Что нужно сделать?">
-        <button class="кнопка-ок" onclick="добавить()">ОК</button>
-    </div>
-    <div id="список"></div>
 
-    <script>
-        let задачи = JSON.parse(localStorage.getItem('задачи_менеджера') || '[]');
-        function показать() {
-            document.getElementById('список').innerHTML = задачи.map((текст, номер) => `
-                <div class="задача">
-                    <span>${текст}</span>
-                    <button class="кнопка-удалить" onclick="удалить(${номер})">УДАЛИТЬ</button>
-                </div>
-            `).join('');
-            localStorage.setItem('задачи_менеджера', JSON.stringify(задачи));
+<div class="container">
+    <h2>СПИСОК ЗАДАЧ</h2>
+    <div class="input-group">
+        <input type="text" id="taskInput" placeholder="Введите задачу...">
+        <button onclick="addTask()">OK</button>
+    </div>
+    <ul id="taskList"></ul>
+</div>
+
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand(); // Раскрываем на весь экран
+
+    // Загрузка задач из памяти телефона
+    let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+    function renderTasks() {
+        const list = document.getElementById('taskList');
+        list.innerHTML = '';
+        tasks.forEach((task, index) => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                ${task}
+                <button class="delete-btn" onclick="deleteTask(${index})">X</button>
+            `;
+            list.appendChild(li);
+        });
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+    }
+
+    function addTask() {
+        const input = document.getElementById('taskInput');
+        if (input.value.trim() !== '') {
+            tasks.push(input.value);
+            input.value = '';
+            renderTasks();
         }
-        function добавить() {
-            let инпут = document.getElementById('ввод');
-            if(инпут.value) { задачи.push(инпут.value); инпут.value=''; показать(); }
-        }
-        function удалить(номер) { задачи.splice(номер, 1); показать(); }
-        показать();
-    </script>
+    }
+
+    function deleteTask(index) {
+        tasks.splice(index, 1);
+        renderTasks();
+    }
+
+    renderTasks();
+</script>
+
 </body>
 </html>
