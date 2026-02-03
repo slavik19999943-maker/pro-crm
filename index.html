@@ -19,8 +19,8 @@
         .done { opacity: 0.4; border-left-color: #4caf50; }
         .done .task-text { text-decoration: line-through; }
         .btns { display: flex; gap: 8px; }
-        .btn-ok { background: #2ecc71; flex: 1; }
-        .btn-del { background: #e74c3c; flex: 1; }
+        .btn-ok { background: #2ecc71; flex: 1; font-size: 12px; }
+        .btn-del { background: #e74c3c; flex: 1; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -40,7 +40,8 @@
         document.getElementById('userName').innerText = "Задачи: " + user;
 
         const SUPABASE_URL = 'https://roiadameugqibsqndbvr.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvaWFkYW1ldWdxaWJzcW5kYnZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg2MTQzMjcsImV4cCI6MjA1NDE5MDMyN30.8V4UvH-P2D4X-S9Y0-N1-Z2-A3-B4-C5-D6-E7-F8-G9'; 
+        // Твой новый ключ уже здесь:
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvaWFkYW1ldWdxaWJzcW5kYnZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxMzIxMjgsImV4cCI6MjA4NTcwODEyOH0.2L9vgUDFmXXO7__maMpsNPtAcZ47qsPE4IoElkKfUXs'; 
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -58,7 +59,7 @@
                         <div class="task-info"><span>👤 ${task.author || 'Админ'}</span> <span>⏰ ${time}</span></div>
                         <span class="task-text">${task.text}</span>
                         <div class="btns">
-                            <button class="btn-ok" onclick="toggleDone(${task.id}, ${task.is_done})">Готово</button>
+                            <button class="btn-ok" onclick="toggleDone(${task.id}, ${task.is_done})">${task.is_done ? 'Вернуть' : 'Готово'}</button>
                             <button class="btn-del" onclick="deleteTask(${task.id})">Удалить</button>
                         </div>`;
                     list.appendChild(item);
@@ -74,7 +75,7 @@
                 if (error) throw error;
                 input.value = '';
                 loadTasks();
-            } catch (e) { alert("Ошибка сохранения. Проверь столбцы в таблице!"); }
+            } catch (e) { alert("Ошибка сохранения. Проверь столбцы author и is_done в таблице tasks!"); }
         }
 
         async function toggleDone(id, status) {
@@ -83,8 +84,10 @@
         }
 
         async function deleteTask(id) {
-            await supabaseClient.from('tasks').delete().eq('id', id);
-            loadTasks();
+            if(confirm('Удалить?')) {
+                await supabaseClient.from('tasks').delete().eq('id', id);
+                loadTasks();
+            }
         }
 
         loadTasks();
