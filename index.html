@@ -2,175 +2,110 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRM Задачи</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CRM CRM</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #000; color: white; padding: 15px; margin: 0; }
-        .container { max-width: 500px; margin: auto; }
-        
-        .input-area { background: #1a1a1a; padding: 15px; border-radius: 16px; margin-bottom: 20px; border: 1px solid #333; }
-        input, select { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #333; background: #262626; color: white; box-sizing: border-box; font-size: 16px; }
-        .row { display: flex; gap: 10px; }
-        .add-btn { width: 100%; background: #0088cc; border: none; border-radius: 10px; padding: 14px; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
-
-        .admin-filter { margin-bottom: 15px; padding: 10px; background: #0088cc22; border-radius: 10px; border: 1px dashed #0088cc; display: none; }
-
-        .date-section { margin: 20px 0 10px; color: #0088cc; font-size: 14px; font-weight: bold; border-left: 3px solid #0088cc; padding-left: 10px; }
-        .task-card { background: #1a1a1a; border-radius: 12px; padding: 15px; margin-top: 10px; border-left: 5px solid #444; }
-        .prio-high { border-left-color: #e74c3c; } 
-        .prio-mid { border-left-color: #f1c40f; }
-        
-        .task-header { display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-bottom: 8px; }
-        .task-time { color: #0088cc; font-weight: bold; }
-        .task-text { font-size: 16px; margin-bottom: 12px; color: #fff; }
-        
-        .result-text { font-size: 13px; color: #2ecc71; font-style: italic; background: #000; padding: 8px; border-radius: 8px; margin-bottom: 10px; border: 1px dashed #2ecc71; }
-
-        .done { opacity: 0.5; }
-        .actions { display: flex; gap: 8px; }
-        button { border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .btn-check { background: #27ae60; color: white; flex: 3; }
-        .btn-delete { background: #c0392b; color: white; flex: 1; }
+        body { font-family: -apple-system, sans-serif; background: #000; color: #fff; padding: 15px; margin: 0; }
+        .card { background: #1c1c1e; padding: 20px; border-radius: 15px; border: 1px solid #333; margin-bottom: 20px; }
+        input, select { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #333; background: #2c2c2e; color: #fff; font-size: 16px; box-sizing: border-box; }
+        .btn-add { width: 100%; background: #0088cc; border: none; padding: 15px; border-radius: 12px; color: #fff; font-weight: bold; font-size: 16px; }
+        .task-item { background: #1c1c1e; padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid #0088cc; }
+        .task-header { display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-bottom: 5px; }
+        .task-text { font-size: 16px; margin-bottom: 10px; }
+        .high { border-left-color: #ff3b30; }
+        .done { opacity: 0.4; text-decoration: line-through; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2 id="userName" style="text-align:center;">Задачи</h2>
-
-    <div id="adminPanel" class="admin-filter">
-        <select id="userFilter">
-            <option value="all">Все сотрудники</option>
-        </select>
-    </div>
-    
-    <div class="input-area">
-        <input type="text" id="taskInput" placeholder="Что сделать?">
-        <div class="row">
-            <input type="date" id="dateInput">
-            <input type="time" id="timeInput">
+    <div class="card">
+        <h3 id="userDisplay" style="margin-top:0; text-align:center;">Загрузка...</h3>
+        <input type="text" id="taskText" placeholder="Текст задачи">
+        <div style="display:flex; gap:10px;">
+            <input type="date" id="taskDate">
+            <input type="time" id="taskTime">
         </div>
-        <select id="prioInput">
+        <select id="taskPrio">
             <option value="low">Обычный</option>
             <option value="mid">Важный</option>
             <option value="high">СРОЧНО 🔥</option>
         </select>
-        <button class="add-btn" id="submitBtn">СОЗДАТЬ ЗАДАЧУ</button>
+        <button class="btn-add" onclick="sendTask()">СОЗДАТЬ</button>
     </div>
 
-    <div id="taskList"></div>
-</div>
+    <div id="tasksList"></div>
 
 <script>
-    // 1. Сначала объявляем все переменные и функции
     const tg = window.Telegram.WebApp;
+    tg.expand();
+
     const URL = 'https://roiadameugqibsqndbvr.supabase.co';
     const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvaWFkYW1ldWdxaWJzcW5kYnZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxMzIxMjgsImV4cCI6MjA4NTcwODEyOH0.2L9vgUDFmXXO7__maMpsNPtAcZ47qsPE4IoElkKfUXs';
-    
-    // Инициализация клиента Supabase
     const supabaseClient = supabase.createClient(URL, KEY);
-    const userRealName = tg.initDataUnsafe?.user?.first_name || "Менеджер";
 
-    // Функция загрузки
-    async function loadTasks() {
-        const filterVal = document.getElementById('userFilter').value;
-        let query = supabaseClient.from('tasks').select('*').order('due_date', { ascending: true });
-        
-        if (filterVal !== 'all') query = query.eq('author', filterVal);
+    const author = tg.initDataUnsafe?.user?.first_name || "Админ";
+    document.getElementById('userDisplay').innerText = "Задачи: " + author;
 
-        const { data, error } = await query;
+    async function getTasks() {
+        const { data, error } = await supabaseClient.from('tasks').select('*').order('id', { ascending: false });
         if (error) return;
 
-        const list = document.getElementById('taskList');
+        const list = document.getElementById('tasksList');
         list.innerHTML = '';
-        const authors = new Set();
-        let lastDate = "";
-
-        data.forEach(task => {
-            if (task.author) authors.add(task.author);
-            if (task.due_date !== lastDate) {
-                const section = document.createElement('div');
-                section.className = 'date-section';
-                section.innerText = task.due_date || "Без даты";
-                list.appendChild(section);
-                lastDate = task.due_date;
-            }
-
+        data.forEach(t => {
             const div = document.createElement('div');
-            div.className = `task-card ${task.is_done ? 'done' : ''} prio-${task.priority}`;
+            div.className = `task-item ${t.priority === 'high' ? 'high' : ''} ${t.is_done ? 'done' : ''}`;
             div.innerHTML = `
                 <div class="task-header">
-                    <span>👤 ${task.author}</span>
-                    <span class="task-time">${task.task_time ? '⏰ ' + task.task_time : ''}</span>
+                    <span>📅 ${t.due_date || 'Без даты'} ${t.task_time || ''}</span>
+                    <span>👤 ${t.author}</span>
                 </div>
-                <div class="task-text">${task.text}</div>
-                ${task.result_comment ? `<div class="result-text">📝 ${task.result_comment}</div>` : ''}
-                <div class="actions">
-                    <button class="btn-check" onclick="completeTask(${task.id}, ${task.is_done})">${task.is_done ? 'Вернуть' : 'Готово'}</button>
-                    <button class="btn-delete" onclick="deleteTask(${task.id})">🗑</button>
-                </div>
+                <div class="task-text">${t.text}</div>
+                <button onclick="remove(${t.id})" style="background:none; border:none; color:#ff3b30; font-size:12px; padding:0;">Удалить</button>
             `;
             list.appendChild(div);
         });
-
-        if (authors.size > 1) {
-            document.getElementById('adminPanel').style.display = 'block';
-            const select = document.getElementById('userFilter');
-            const saved = select.value;
-            select.innerHTML = '<option value="all">Все сотрудники</option>';
-            authors.forEach(a => {
-                const opt = document.createElement('option');
-                opt.value = a; opt.innerText = a;
-                select.appendChild(opt);
-            });
-            select.value = saved;
-        }
     }
 
-    // Функция добавления
-    async function addTask() {
-        const text = document.getElementById('taskInput').value;
-        const date = document.getElementById('date_date') ? "" : document.getElementById('dateInput').value;
-        const time = document.getElementById('timeInput').value;
-        const prio = document.getElementById('prioInput').value;
+    async function sendTask() {
+        const text = document.getElementById('taskText').value;
+        const date = document.getElementById('taskDate').value;
+        const time = document.getElementById('taskTime').value;
+        const prio = document.getElementById('taskPrio').value;
 
-        if (!text) return alert("Введите текст!");
+        if (!text) {
+            alert("Напиши текст!");
+            return;
+        }
 
+        // Попытка записи
         const { error } = await supabaseClient.from('tasks').insert([{
-            text, due_date: date || null, task_time: time || null, priority: prio, author: userRealName, is_done: false
+            text: text,
+            due_date: date || null,
+            task_time: time || null,
+            priority: prio,
+            author: author,
+            is_done: false
         }]);
 
-        if (error) alert(error.message);
-        else {
-            document.getElementById('taskInput').value = '';
-            loadTasks();
+        if (error) {
+            alert("Ошибка базы: " + error.message);
+        } else {
+            document.getElementById('taskText').value = '';
+            getTasks();
         }
     }
 
-    async function completeTask(id, status) {
-        let comment = status ? "" : prompt("Результат:", "");
-        await supabaseClient.from('tasks').update({ is_done: !status, result_comment: comment }).eq('id', id);
-        loadTasks();
-    }
-
-    async function deleteTask(id) {
+    async function remove(id) {
         if(confirm("Удалить?")) {
             await supabaseClient.from('tasks').delete().eq('id', id);
-            loadTasks();
+            getTasks();
         }
     }
 
-    // 2. В самом конце назначаем события и запускаем код
-    document.addEventListener('DOMContentLoaded', () => {
-        tg.expand();
-        document.getElementById('userName').innerText = "Задачи: " + userRealName;
-        document.getElementById('dateInput').valueAsDate = new Date();
-        document.getElementById('submitBtn').addEventListener('click', addTask);
-        document.getElementById('userFilter').addEventListener('change', loadTasks);
-        loadTasks();
-    });
+    getTasks();
 </script>
 </body>
 </html>
