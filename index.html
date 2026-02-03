@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CRM CRM</title>
+    <title>CRM FIX</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -14,14 +14,12 @@
         .task-item { background: #1c1c1e; padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid #0088cc; }
         .task-header { display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-bottom: 5px; }
         .task-text { font-size: 16px; margin-bottom: 10px; }
-        .high { border-left-color: #ff3b30; }
-        .done { opacity: 0.4; text-decoration: line-through; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h3 id="userDisplay" style="margin-top:0; text-align:center;">Загрузка...</h3>
+        <h3 id="userDisplay" style="margin-top:0; text-align:center;">Инициализация...</h3>
         <input type="text" id="taskText" placeholder="Текст задачи">
         <div style="display:flex; gap:10px;">
             <input type="date" id="taskDate">
@@ -43,30 +41,43 @@
 
     const URL = 'https://roiadameugqibsqndbvr.supabase.co';
     const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvaWFkYW1ldWdxaWJzcW5kYnZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxMzIxMjgsImV4cCI6MjA4NTcwODEyOH0.2L9vgUDFmXXO7__maMpsNPtAcZ47qsPE4IoElkKfUXs';
-    const supabaseClient = supabase.createClient(URL, KEY);
+    
+    let supabaseClient;
+
+    try {
+        supabaseClient = supabase.createClient(URL, KEY);
+        console.log("Supabase инициализирован");
+    } catch (e) {
+        document.getElementById('userDisplay').innerText = "Ошибка запуска!";
+    }
 
     const author = tg.initDataUnsafe?.user?.first_name || "Админ";
     document.getElementById('userDisplay').innerText = "Задачи: " + author;
 
     async function getTasks() {
-        const { data, error } = await supabaseClient.from('tasks').select('*').order('id', { ascending: false });
-        if (error) return;
+        try {
+            const { data, error } = await supabaseClient.from('tasks').select('*').order('id', { ascending: false });
+            if (error) throw error;
 
-        const list = document.getElementById('tasksList');
-        list.innerHTML = '';
-        data.forEach(t => {
-            const div = document.createElement('div');
-            div.className = `task-item ${t.priority === 'high' ? 'high' : ''} ${t.is_done ? 'done' : ''}`;
-            div.innerHTML = `
-                <div class="task-header">
-                    <span>📅 ${t.due_date || 'Без даты'} ${t.task_time || ''}</span>
-                    <span>👤 ${t.author}</span>
-                </div>
-                <div class="task-text">${t.text}</div>
-                <button onclick="remove(${t.id})" style="background:none; border:none; color:#ff3b30; font-size:12px; padding:0;">Удалить</button>
-            `;
-            list.appendChild(div);
-        });
+            const list = document.getElementById('tasksList');
+            list.innerHTML = '';
+            data.forEach(t => {
+                const div = document.createElement('div');
+                div.className = `task-item ${t.priority === 'high' ? 'border-left-color: #ff3b30;' : ''}`;
+                div.innerHTML = `
+                    <div class="task-header">
+                        <span>📅 ${t.due_date || '-'} ${t.task_time || ''}</span>
+                        <span>👤 ${t.author || 'Аноним'}</span>
+                    </div>
+                    <div class="task-text">${t.text}</div>
+                    <button onclick="remove(${t.id})" style="background:none; border:none; color:#ff3b30; font-size:12px;">Удалить</button>
+                `;
+                list.appendChild(div);
+            });
+        } catch (err) {
+            document.getElementById('userDisplay').innerText = "Ошибка загрузки данных";
+            console.error(err);
+        }
     }
 
     async function sendTask() {
@@ -75,26 +86,23 @@
         const time = document.getElementById('taskTime').value;
         const prio = document.getElementById('taskPrio').value;
 
-        if (!text) {
-            alert("Напиши текст!");
-            return;
-        }
+        if (!text) return alert("Напиши текст!");
 
-        // Попытка записи
-        const { error } = await supabaseClient.from('tasks').insert([{
-            text: text,
-            due_date: date || null,
-            task_time: time || null,
-            priority: prio,
-            author: author,
-            is_done: false
-        }]);
+        try {
+            const { error } = await supabaseClient.from('tasks').insert([{
+                text: text,
+                due_date: date || null,
+                task_time: time || null,
+                priority: prio,
+                author: author,
+                is_done: false
+            }]);
 
-        if (error) {
-            alert("Ошибка базы: " + error.message);
-        } else {
+            if (error) throw error;
             document.getElementById('taskText').value = '';
             getTasks();
+        } catch (err) {
+            alert("Ошибка при сохранении: " + err.message);
         }
     }
 
@@ -105,6 +113,7 @@
         }
     }
 
+    // Запуск
     getTasks();
 </script>
 </body>
