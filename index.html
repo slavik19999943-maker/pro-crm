@@ -3,31 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRM Система</title>
+    <title>CRM Система PRO</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: sans-serif; background: #121212; color: white; padding: 15px; margin: 0; }
-        .card { background: #1e1e1e; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        h2 { text-align: center; color: #0088cc; font-size: 18px; margin-bottom: 20px; }
+        body { font-family: -apple-system, sans-serif; background: #121212; color: white; padding: 15px; margin: 0; }
+        .card { background: #1e1e1e; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333; }
+        h2 { text-align: center; color: #0088cc; font-size: 18px; margin-top: 0; }
         .input-group { display: flex; gap: 8px; margin-bottom: 20px; }
         input { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #333; background: #2a2a2a; color: white; outline: none; }
         button { padding: 12px; border: none; border-radius: 10px; cursor: pointer; background: #0088cc; color: white; font-weight: bold; }
-        .task-item { background: #2a2a2a; padding: 12px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid #0088cc; }
-        .task-info { font-size: 11px; color: #888; margin-bottom: 5px; display: flex; justify-content: space-between; }
-        .task-text { font-size: 16px; display: block; margin-bottom: 10px; }
+        .task-item { background: #2a2a2a; padding: 15px; border-radius: 15px; margin-bottom: 12px; border-left: 5px solid #0088cc; }
+        .task-info { font-size: 11px; color: #888; margin-bottom: 8px; display: flex; justify-content: space-between; }
+        .task-text { font-size: 16px; display: block; margin-bottom: 12px; }
         .done { opacity: 0.4; border-left-color: #4caf50; }
         .done .task-text { text-decoration: line-through; }
-        .btns { display: flex; gap: 5px; }
+        .btns { display: flex; gap: 8px; }
         .btn-ok { background: #2ecc71; flex: 1; font-size: 12px; }
         .btn-del { background: #e74c3c; flex: 1; font-size: 12px; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h2 id="userName">Мои Задачи</h2>
+        <h2 id="userName">Загрузка...</h2>
         <div class="input-group">
-            <input type="text" id="taskInput" placeholder="Что сделать?">
+            <input type="text" id="taskInput" placeholder="Что нужно сделать?">
             <button onclick="addTask()">ОК</button>
         </div>
         <div id="taskList"></div>
@@ -37,41 +37,46 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
         const user = tg.initDataUnsafe?.user?.first_name || "Админ";
-        document.getElementById('userName').innerText = `Привет, ${user}!`;
+        document.getElementById('userName').innerText = "Задачи: " + user;
 
-        // ТВОИ ДАННЫЕ С ФОТО
         const SUPABASE_URL = 'https://roiadameugqibsqndbvr.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvaWFkYW1ldWdxaWJzcW5kYnZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg2MTQzMjcsImV4cCI6MjA1NDE5MDMyN30.K_H-5xGkL-0pS0-w1-r2-v3-m4-j5-f6-h7-q8-s9'; 
-        // ВНИМАНИЕ: Если ключ выше не подошел, скопируй его ВЕСЬ из Supabase (он очень длинный) и вставь вместо него.
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvaWFkYW1ldWdxaWJzcW5kYnZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg2MTQzMjcsImV4cCI6MjA1NDE5MDMyN30.8V4UvH-P2D4X-S9Y0-N1-Z2-A3-B4-C5-D6-E7-F8-G9'; 
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         async function loadTasks() {
-            const { data, error } = await supabaseClient.from('tasks').select('*').order('id', { ascending: false });
-            if (error) return;
-            const list = document.getElementById('taskList');
-            list.innerHTML = '';
-            data.forEach(task => {
-                const time = new Date(task.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                const item = document.createElement('div');
-                item.className = `task-item ${task.is_done ? 'done' : ''}`;
-                item.innerHTML = `
-                    <div class="task-info"><span>👤 ${task.author || 'Админ'}</span> <span>⏰ ${time}</span></div>
-                    <span class="task-text">${task.text}</span>
-                    <div class="btns">
-                        <button class="btn-ok" onclick="toggleDone(${task.id}, ${task.is_done})">Готово</button>
-                        <button class="btn-del" onclick="deleteTask(${task.id})">Удалить</button>
-                    </div>`;
-                list.appendChild(item);
-            });
+            try {
+                const { data, error } = await supabaseClient.from('tasks').select('*').order('id', { ascending: false });
+                if (error) throw error;
+                const list = document.getElementById('taskList');
+                list.innerHTML = '';
+                data.forEach(task => {
+                    const time = new Date(task.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    const item = document.createElement('div');
+                    item.className = `task-item ${task.is_done ? 'done' : ''}`;
+                    item.innerHTML = `
+                        <div class="task-info"><span>👤 ${task.author || 'Админ'}</span> <span>⏰ ${time}</span></div>
+                        <span class="task-text">${task.text}</span>
+                        <div class="btns">
+                            <button class="btn-ok" onclick="toggleDone(${task.id}, ${task.is_done})">${task.is_done ? 'Вернуть' : 'Готово'}</button>
+                            <button class="btn-del" onclick="deleteTask(${task.id})">Удалить</button>
+                        </div>`;
+                    list.appendChild(item);
+                });
+            } catch (err) { alert("Ошибка загрузки: " + err.message); }
         }
 
         async function addTask() {
             const input = document.getElementById('taskInput');
             if (!input.value) return;
-            await supabaseClient.from('tasks').insert([{ text: input.value, author: user, is_done: false }]);
-            input.value = '';
-            loadTasks();
+            try {
+                const { error } = await supabaseClient.from('tasks').insert([
+                    { text: input.value, author: user, is_done: false }
+                ]);
+                if (error) throw error;
+                input.value = '';
+                loadTasks();
+            } catch (err) { alert("Ошибка сохранения: " + err.message); }
         }
 
         async function toggleDone(id, currentStatus) {
@@ -80,8 +85,10 @@
         }
 
         async function deleteTask(id) {
-            await supabaseClient.from('tasks').delete().eq('id', id);
-            loadTasks();
+            if(confirm('Удалить задачу?')) {
+                await supabaseClient.from('tasks').delete().eq('id', id);
+                loadTasks();
+            }
         }
 
         loadTasks();
