@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Моя СРМ</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f0f5; padding: 20px; }
+        .поле-ввода { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { flex: 1; padding: 15px; border-radius: 10px; border: 1px solid #ccc; }
+        .кнопка-ок { background: #0088cc; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; }
+        .задача { background: white; padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .кнопка-удалить { background: #ff3b30; color: white; border: none; padding: 8px 12px; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h2>СПИСОК ЗАДАЧ</h2>
+    <div class="поле-ввода">
+        <input type="text" id="ввод" placeholder="Что нужно сделать?">
+        <button class="кнопка-ок" onclick="добавить()">ОК</button>
+    </div>
+    <div id="список"></div>
+
+    <script>
+        let задачи = JSON.parse(localStorage.getItem('задачи_менеджера') || '[]');
+        function показать() {
+            document.getElementById('список').innerHTML = задачи.map((текст, номер) => `
+                <div class="задача">
+                    <span>${текст}</span>
+                    <button class="кнопка-удалить" onclick="удалить(${номер})">УДАЛИТЬ</button>
+                </div>
+            `).join('');
+            localStorage.setItem('задачи_менеджера', JSON.stringify(задачи));
+        }
+        function добавить() {
+            let инпут = document.getElementById('ввод');
+            if(инпут.value) { задачи.push(инпут.value); инпут.value=''; показать(); }
+        }
+        function удалить(номер) { задачи.splice(номер, 1); показать(); }
+        показать();
+    </script>
+</body>
+</html>
