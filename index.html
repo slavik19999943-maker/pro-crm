@@ -3,103 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO CRM</title>
+    <title>CRM Система</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: var(--tg-theme-bg-color, #f4f4f9);
-            color: var(--tg-theme-text-color, #222);
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            max-width: 500px;
-            margin: auto;
-            background: var(--tg-theme-secondary-bg-color, #fff);
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        h2 { text-align: center; color: var(--tg-theme-button-color, #007bff); }
-        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        input {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            outline: none;
-        }
-        button {
-            padding: 10px 15px;
-            background-color: var(--tg-theme-button-color, #007bff);
-            color: var(--tg-theme-button-text-color, #fff);
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-        ul { list-style: none; padding: 0; }
-        li {
-            background: #eee;
-            margin-bottom: 10px;
-            padding: 10px;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: #333;
-        }
-        .delete-btn { background: #ff4d4d; color: white; padding: 5px 10px; font-size: 12px; }
+        body { font-family: sans-serif; background: #f0f2f5; padding: 15px; display: flex; justify-content: center; color: #333; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        h2 { color: #3498db; text-align: center; margin-top: 0; font-size: 20px; }
+        .input-group { display: flex; gap: 8px; margin-bottom: 20px; }
+        input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 10px; outline: none; font-size: 16px; }
+        button { padding: 10px 18px; border: none; border-radius: 10px; cursor: pointer; color: white; background: #3498db; font-weight: bold; }
+        button:active { transform: scale(0.98); opacity: 0.9; }
+        .task-item { display: flex; justify-content: space-between; align-items: center; background: #fdfdfd; padding: 12px; border-radius: 10px; margin-bottom: 10px; border-left: 5px solid #3498db; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .task-text { flex: 1; margin-right: 10px; font-size: 15px; word-break: break-word; }
+        .del-btn { background: #ff4757; padding: 6px 12px; font-size: 14px; border-radius: 8px; }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <h2>СПИСОК ЗАДАЧ</h2>
-    <div class="input-group">
-        <input type="text" id="taskInput" placeholder="Введите задачу...">
-        <button onclick="addTask()">OK</button>
+    <div class="card">
+        <h2>CRM ЗАДАЧИ</h2>
+        <div class="input-group">
+            <input type="text" id="taskInput" placeholder="Что нужно сделать?">
+            <button onclick="addTask()">ОК</button>
+        </div>
+        <div id="taskList"></div>
     </div>
-    <ul id="taskList"></ul>
-</div>
 
-<script>
-    const tg = window.Telegram.WebApp;
-    tg.expand(); // Раскрываем на весь экран
+    <script>
+        // Твои данные подключения
+        const SUPABASE_URL = 'https://roiadameugqibsqndbvr.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_dHoCv1nOAcCDjfeM0ygNYA_0cqskL7a';
 
-    // Загрузка задач из памяти телефона
-    let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    function renderTasks() {
-        const list = document.getElementById('taskList');
-        list.innerHTML = '';
-        tasks.forEach((task, index) => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                ${task}
-                <button class="delete-btn" onclick="deleteTask(${index})">X</button>
-            `;
-            list.appendChild(li);
-        });
-        localStorage.setItem('tasks', JSON.stringify(tasks));
-    }
+        // Загрузка задач из базы
+        async function loadTasks() {
+            const { data, error } = await _supabase
+                .from('tasks')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (error) {
+                console.error('Ошибка загрузки:', error);
+                return;
+            }
 
-    function addTask() {
-        const input = document.getElementById('taskInput');
-        if (input.value.trim() !== '') {
-            tasks.push(input.value);
-            input.value = '';
-            renderTasks();
+            const list = document.getElementById('taskList');
+            list.innerHTML = '';
+            data.forEach(task => {
+                const item = document.createElement('div');
+                item.className = 'task-item';
+                item.innerHTML = `
+                    <div class="task-text">${task.text}</div>
+                    <button class="del-btn" onclick="deleteTask(${task.id})">✕</button>
+                `;
+                list.appendChild(item);
+            });
         }
-    }
 
-    function deleteTask(index) {
-        tasks.splice(index, 1);
-        renderTasks();
-    }
+        // Добавление новой задачи
+        async function addTask() {
+            const input = document.getElementById('taskInput');
+            const text = input.value.trim();
+            
+            if (!text) return;
 
-    renderTasks();
-</script>
+            const { error } = await _supabase
+                .from('tasks')
+                .insert([{ text: text }]);
 
+            if (error) {
+                alert('Ошибка при сохранении!');
+                console.error(error);
+            } else {
+                input.value = '';
+                loadTasks();
+            }
+        }
+
+        // Удаление задачи
+        async function deleteTask(id) {
+            const { error } = await _supabase
+                .from('tasks')
+                .delete()
+                .eq('id', id);
+            
+            if (!error) loadTasks();
+        }
+
+        // Запуск при открытии
+        loadTasks();
+    </script>
 </body>
 </html>
