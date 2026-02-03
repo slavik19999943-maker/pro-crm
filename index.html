@@ -3,23 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CRM FIX</title>
+    <title>CRM CRM</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: -apple-system, sans-serif; background: #000; color: #fff; padding: 15px; margin: 0; }
         .card { background: #1c1c1e; padding: 20px; border-radius: 15px; border: 1px solid #333; margin-bottom: 20px; }
         input, select { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #333; background: #2c2c2e; color: #fff; font-size: 16px; box-sizing: border-box; }
-        .btn-add { width: 100%; background: #0088cc; border: none; padding: 15px; border-radius: 12px; color: #fff; font-weight: bold; font-size: 16px; }
+        .btn-add { width: 100%; background: #0088cc; border: none; padding: 15px; border-radius: 12px; color: #fff; font-weight: bold; font-size: 16px; cursor: pointer; }
         .task-item { background: #1c1c1e; padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid #0088cc; }
         .task-header { display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-bottom: 5px; }
         .task-text { font-size: 16px; margin-bottom: 10px; }
+        .high { border-left-color: #ff3b30 !important; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h3 id="userDisplay" style="margin-top:0; text-align:center;">Инициализация...</h3>
+        <h3 id="userDisplay" style="margin-top:0; text-align:center;">Загрузка...</h3>
         <input type="text" id="taskText" placeholder="Текст задачи">
         <div style="display:flex; gap:10px;">
             <input type="date" id="taskDate">
@@ -30,7 +31,7 @@
             <option value="mid">Важный</option>
             <option value="high">СРОЧНО 🔥</option>
         </select>
-        <button class="btn-add" onclick="sendTask()">СОЗДАТЬ</button>
+        <button class="btn-add" id="addBtn">СОЗДАТЬ</button>
     </div>
 
     <div id="tasksList"></div>
@@ -42,17 +43,8 @@
     const URL = 'https://roiadameugqibsqndbvr.supabase.co';
     const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvaWFkYW1ldWdxaWJzcW5kYnZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxMzIxMjgsImV4cCI6MjA4NTcwODEyOH0.2L9vgUDFmXXO7__maMpsNPtAcZ47qsPE4IoElkKfUXs';
     
-    let supabaseClient;
-
-    try {
-        supabaseClient = supabase.createClient(URL, KEY);
-        console.log("Supabase инициализирован");
-    } catch (e) {
-        document.getElementById('userDisplay').innerText = "Ошибка запуска!";
-    }
-
+    const supabaseClient = supabase.createClient(URL, KEY);
     const author = tg.initDataUnsafe?.user?.first_name || "Админ";
-    document.getElementById('userDisplay').innerText = "Задачи: " + author;
 
     async function getTasks() {
         try {
@@ -60,58 +52,65 @@
             if (error) throw error;
 
             const list = document.getElementById('tasksList');
+            if (!list) return;
+            
             list.innerHTML = '';
             data.forEach(t => {
                 const div = document.createElement('div');
-                div.className = `task-item ${t.priority === 'high' ? 'border-left-color: #ff3b30;' : ''}`;
+                div.className = `task-item ${t.priority === 'high' ? 'high' : ''}`;
                 div.innerHTML = `
                     <div class="task-header">
                         <span>📅 ${t.due_date || '-'} ${t.task_time || ''}</span>
-                        <span>👤 ${t.author || 'Аноним'}</span>
+                        <span>👤 ${t.author || '---'}</span>
                     </div>
-                    <div class="task-text">${t.text}</div>
-                    <button onclick="remove(${t.id})" style="background:none; border:none; color:#ff3b30; font-size:12px;">Удалить</button>
+                    <div class="task-text">${t.text || ''}</div>
+                    <button onclick="removeTask(${t.id})" style="background:none; border:none; color:#ff3b30; font-size:12px; cursor:pointer;">Удалить</button>
                 `;
                 list.appendChild(div);
             });
+            document.getElementById('userDisplay').innerText = "Задачи: " + author;
         } catch (err) {
-            document.getElementById('userDisplay').innerText = "Ошибка загрузки данных";
             console.error(err);
+            document.getElementById('userDisplay').innerText = "Ошибка загрузки";
         }
     }
 
     async function sendTask() {
-        const text = document.getElementById('taskText').value;
-        const date = document.getElementById('taskDate').value;
-        const time = document.getElementById('taskTime').value;
-        const prio = document.getElementById('taskPrio').value;
+        const textEl = document.getElementById('taskText');
+        const dateEl = document.getElementById('taskDate');
+        const timeEl = document.getElementById('taskTime');
+        const prioEl = document.getElementById('taskPrio');
 
-        if (!text) return alert("Напиши текст!");
+        if (!textEl || !textEl.value) return alert("Введите текст задачи");
 
         try {
             const { error } = await supabaseClient.from('tasks').insert([{
-                text: text,
-                due_date: date || null,
-                task_time: time || null,
-                priority: prio,
+                text: textEl.value,
+                due_date: dateEl ? dateEl.value : null,
+                task_time: timeEl ? timeEl.value : null,
+                priority: prioEl ? prioEl.value : 'low',
                 author: author,
                 is_done: false
             }]);
 
             if (error) throw error;
-            document.getElementById('taskText').value = '';
+            
+            textEl.value = '';
             getTasks();
         } catch (err) {
-            alert("Ошибка при сохранении: " + err.message);
+            alert("Ошибка сохранения: " + err.message);
         }
     }
 
-    async function remove(id) {
-        if(confirm("Удалить?")) {
+    async function removeTask(id) {
+        if (confirm("Удалить задачу?")) {
             await supabaseClient.from('tasks').delete().eq('id', id);
             getTasks();
         }
     }
+
+    // Привязываем клик после загрузки
+    document.getElementById('addBtn').onclick = sendTask;
 
     // Запуск
     getTasks();
