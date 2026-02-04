@@ -17,42 +17,34 @@
 
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg-color); margin: 0; padding: 12px; color: #333; }
         
-        /* Команда и быстрые задачи */
-        .team-label { font-size: 12px; color: #666; font-weight: bold; margin-bottom: 8px; margin-left: 4px; }
+        .team-label { font-size: 11px; color: #888; font-weight: bold; margin: 0 0 8px 4px; text-transform: uppercase; }
         .team-section { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 12px; margin-bottom: 10px; -webkit-overflow-scrolling: touch; }
-        .manager-chip { background: white; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--primary); white-space: nowrap; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .manager-chip { background: white; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--primary); white-space: nowrap; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-size: 14px; }
         .plus-icon { background: var(--primary); color: white; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; }
 
-        /* Форма создания */
         .form-section { background: white; padding: 16px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 20px; }
-        select, textarea, input { width: 100%; margin-bottom: 12px; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; outline: none; }
-        select:focus, textarea:focus { border-color: var(--primary); }
-        button.add-btn { background: var(--primary); color: white; border: none; width: 100%; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 16px; transition: 0.2s; }
-        button.add-btn:active { transform: scale(0.98); opacity: 0.9; }
+        select, textarea, input { width: 100%; margin-bottom: 12px; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; outline: none; -webkit-appearance: none; }
+        button.add-btn { background: var(--primary); color: white; border: none; width: 100%; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 16px; }
 
-        /* Группировка по дням */
-        .day-header { font-weight: 800; color: #888; margin: 25px 0 12px 5px; text-transform: uppercase; font-size: 11px; letter-spacing: 1.2px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+        .day-header { font-weight: 800; color: #999; margin: 25px 0 12px 5px; text-transform: uppercase; font-size: 11px; letter-spacing: 1.2px; border-bottom: 1px solid #e0e0e0; padding-bottom: 4px; }
 
-        /* Карточки задач */
-        .task-card { padding: 15px; border-radius: 12px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border-left: 6px solid transparent; transition: 0.3s; }
+        .task-card { padding: 15px; border-radius: 12px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border-left: 6px solid transparent; }
         .status-in_work { background: var(--card-in-work); border-left-color: #2196f3; }
         .status-completed { background: var(--card-completed); border-left-color: #4caf50; }
         .status-rejected { background: var(--card-rejected); border-left-color: #f44336; }
 
-        .company-name { font-weight: 800; font-size: 17px; color: #1a1a1a; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
-        .task-text { font-size: 15px; line-height: 1.4; margin-bottom: 10px; color: #444; }
-        .meta-line { font-size: 12px; color: #777; display: flex; justify-content: space-between; align-items: center; margin-top: 5px; background: rgba(255,255,255,0.4); padding: 4px 8px; border-radius: 6px; }
+        .company-name { font-weight: 800; font-size: 16px; color: #1a1a1a; margin-bottom: 6px; }
+        .task-text { font-size: 15px; line-height: 1.4; margin-bottom: 10px; color: #444; white-space: pre-wrap; }
+        .meta-line { font-size: 11px; color: #777; display: flex; justify-content: space-between; background: rgba(255,255,255,0.5); padding: 5px 8px; border-radius: 6px; }
         
-        /* Кнопки статуса */
         .actions { display: flex; gap: 8px; margin-top: 12px; }
-        .btn-status { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1); font-size: 11px; font-weight: bold; background: white; cursor: pointer; text-transform: uppercase; }
+        .btn-status { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1); font-size: 10px; font-weight: bold; background: white; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
-    <div class="team-label">БЫСТРАЯ ПОСТАНОВКА МЕНЕДЖЕРУ:</div>
-    <div id="team-list" class="team-section">
-        </div>
+    <div class="team-label">Команда (нажми + чтобы назначить):</div>
+    <div id="team-list" class="team-section"></div>
 
     <div class="form-section">
         <select id="company-select"><option value="">🏢 Выбрать компанию...</option></select>
@@ -61,15 +53,13 @@
             <input type="date" id="task-date">
             <input type="time" id="task-time">
         </div>
-        <select id="manager-select"><option value="">👤 Ответственный...</option></select>
-        <button class="add-btn" onclick="addTask()">СОЗДАТЬ ЗАДАЧУ</button>
+        <select id="manager-select"><option value="">👤 Назначить менеджера...</option></select>
+        <button class="add-btn" onclick="addTask()">ПОСТАВИТЬ ЗАДАЧУ</button>
     </div>
 
-    <div id="tasks-container">
-        </div>
+    <div id="tasks-container"></div>
 
 <script>
-    // ТВОИ ДАННЫЕ ПОДСТАВЛЕНЫ
     const SUPABASE_URL = 'https://ivfksmzhvubfubvfqvpw.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2ZmtzbXpodnViZnVidmZxdnB3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzYyNzM0NjYsImV4cCI6MjA1MTg0OTQ2Nn0.89u2Ait783u_jVfC7tX_hX_0nE_w2o22yX_jX_0nE_w'; 
     
@@ -78,16 +68,33 @@
     tg.expand();
 
     async function init() {
-        // Ставим сегодняшнюю дату в инпут по умолчанию
         document.getElementById('task-date').valueAsDate = new Date();
+        
+        // 1. АВТОРЕГИСТРАЦИЯ: Добавляем того, кто открыл приложение
+        const user = tg.initDataUnsafe?.user;
+        if (user) {
+            const { data: existing } = await supabaseClient
+                .from('team')
+                .select('*')
+                .eq('telegram_id', user.id.toString());
+
+            if (!existing || existing.length === 0) {
+                await supabaseClient.from('team').insert([{
+                    name: user.first_name || 'Менеджер',
+                    telegram_id: user.id.toString()
+                }]);
+            }
+        }
+
         await loadTeam();
         await loadCompanies();
         await loadTasks();
     }
 
     async function loadTeam() {
-        const { data } = await supabaseClient.from('team').select('*');
+        const { data } = await supabaseClient.from('team').select('*').order('name');
         if (!data) return;
+        
         const list = document.getElementById('team-list');
         const select = document.getElementById('manager-select');
         
@@ -96,19 +103,22 @@
                 ${m.name} <div class="plus-icon" onclick="quickTask('${m.name}')">+</div>
             </div>
         `).join('');
-        select.innerHTML += data.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
+
+        select.innerHTML = '<option value="">👤 Назначить менеджера...</option>' + 
+            data.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
     }
 
     async function loadCompanies() {
         const { data } = await supabaseClient.from('companies').select('*').order('name');
         if (!data) return;
-        document.getElementById('company-select').innerHTML += data.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+        document.getElementById('company-select').innerHTML = '<option value="">🏢 Выбрать компанию...</option>' + 
+            data.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
     }
 
     function quickTask(name) {
         document.getElementById('manager-select').value = name;
         document.getElementById('task-text').focus();
-        tg.HapticFeedback.impactOccurred('medium');
+        tg.HapticFeedback.impactOccurred('light');
     }
 
     async function addTask() {
@@ -119,7 +129,7 @@
         const manager = document.getElementById('manager-select').value;
 
         if (!company || !text) {
-            tg.showAlert('Выберите компанию и введите текст задачи!');
+            tg.showAlert('Укажите компанию и текст!');
             return;
         }
 
@@ -133,11 +143,10 @@
             status: 'in_work'
         }]);
 
-        if (error) {
-            alert('Ошибка сохранения');
-        } else {
+        if (!error) {
             tg.HapticFeedback.notificationOccurred('success');
-            location.reload();
+            document.getElementById('task-text').value = '';
+            loadTasks();
         }
     }
 
@@ -148,20 +157,19 @@
     }
 
     async function loadTasks() {
-        const { data } = await supabaseClient.from('tasks').select('*').order('due_date', { ascending: true }).order('due_time', { ascending: true });
+        const { data } = await supabaseClient.from('tasks').select('*').order('due_date', { ascending: true });
         const container = document.getElementById('tasks-container');
         container.innerHTML = '';
 
         const groups = {};
-        data.forEach(t => {
+        data?.forEach(t => {
             const d = t.due_date || 'Без даты';
             if (!groups[d]) groups[d] = [];
             groups[d].push(t);
         });
 
         for (const date in groups) {
-            const dateObj = new Date(date);
-            const headerText = date === 'Без даты' ? date : dateObj.toLocaleDateString('ru-RU', {weekday: 'long', day: 'numeric', month: 'long'});
+            const headerText = date === 'Без даты' ? date : new Date(date).toLocaleDateString('ru-RU', {weekday: 'short', day: 'numeric', month: 'long'});
             container.innerHTML += `<div class="day-header">${headerText}</div>`;
             
             groups[date].forEach(t => {
@@ -174,9 +182,9 @@
                             <span>От: ${t.created_by}</span>
                         </div>
                         <div class="actions">
-                            <button class="btn-status" onclick="updateStatus(${t.id}, 'completed')" style="color: green">✅ Готово</button>
-                            <button class="btn-status" onclick="updateStatus(${t.id}, 'rejected')" style="color: red">❌ Отмена</button>
-                            <button class="btn-status" onclick="updateStatus(${t.id}, 'in_work')" style="color: blue">⏳ Ждет</button>
+                            <button class="btn-status" onclick="updateStatus(${t.id}, 'completed')" style="color: #2e7d32">✅ Готово</button>
+                            <button class="btn-status" onclick="updateStatus(${t.id}, 'rejected')" style="color: #c62828">❌ Отмена</button>
+                            <button class="btn-status" onclick="updateStatus(${t.id}, 'in_work')" style="color: #1565c0">⏳ Ждет</button>
                         </div>
                     </div>
                 `;
